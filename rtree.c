@@ -21,11 +21,14 @@ typedef struct node{
 
 } node;
 
+//GLOBAL VARS
 node *root=NULL;
 int id_count=0;
 int t_c = 0;
+int free_c = 0;
+int max_size = 1000;
 
-node* createNode();//create an empty node id is made of global int id_count incrementation
+node* createNode(node*);//create an empty node id is made of global int id_count incrementation
 rect* createRect(int,int,int,int);//create a rect with x1,y1,x2,y2
 void setNode(node,rect);//set the mbr of node
 
@@ -47,41 +50,55 @@ void separator();
 void printNode(node*);
 void printRect(rect*);
 void test(char t[]);
-void freeNode(node*);
+void freeNode(node*);//maybe needs tail recursion
+void printTree(node*);//print from root
 
 
 //MAIN FUNCTION
 int main(){
-	rect r;
-	r.x1=10;
-	r.x2=20;
-	printf("%d e %d e %d\n",r.x1,r.x2,r.y1);
-	node n1;
-	n1.child[0] = malloc(sizeof(node));
-	n1.id = 222;
-	n1.child[0]->id=333;
-	printf("%d e %d e %d e %d\n",n1.id,n1.child[0]->id,n1.child,M);
-	separator();
-	n1.child[0]->child[0] = createNode();
-	n1.child[0]->child[0]->child[0] = createNode();
-	//test("main <createnode & printnode>");
-	printNode(n1.child[0]->child[0]);
-	printf("\n");
-	printNode(n1.child[0]->child[0]->child[0]);
 
-
-
-
-	freeNode(n1.child[0]);
-
+	root = createNode(NULL);
+	root->mbr.x2 = max_size;
+	root->mbr.y2 = max_size;
+	int i,j,k;
+	for(i = 0; i < M; i++){
+		root->child[i] = createNode(root);
+		root->child[i]->mbr.x1 = i*max_size/6;
+		root->child[i]->mbr.y1 = i*max_size/6;
+		root->child[i]->mbr.x2 = (i+1)*max_size/6;
+		root->child[i]->mbr.y2 = (i+1)*max_size/6;
+		for(j = 0;j < M;j++){
+			root->child[i]->child[j] = createNode(root->child[i]);
+			root->child[i]->child[j]->mbr.x1 = (i*max_size/6)+(j*max_size/36);
+			root->child[i]->child[j]->mbr.y1 = (i*max_size/6)+(j*max_size/36);
+			root->child[i]->child[j]->mbr.x2 = (i*max_size/6)+((j+1)*max_size/36);
+			root->child[i]->child[j]->mbr.y2 = (i*max_size/6)+((j+1)*max_size/36);
+			for(k = 0;k < M;k++){
+				root->child[i]->child[j]->child[k] = createNode(root->child[i]->child[j]);
+				root->child[i]->child[j]->child[k]->mbr.x1 = (i*max_size/6)+(j*max_size/36)+(k*max_size/(6*36));
+				root->child[i]->child[j]->child[k]->mbr.y1 = (i*max_size/6)+(j*max_size/36)+(k*max_size/(6*36));
+				root->child[i]->child[j]->child[k]->mbr.x2 = (i*max_size/6)+(j*max_size/36)+((k+1)*max_size/(6*36));
+				root->child[i]->child[j]->child[k]->mbr.y2 = (i*max_size/6)+(j*max_size/36)+((k+1)*max_size/(6*36));
+			}
+		}
+	}
+	printTree(root);
+	//printRect(&root->mbr);
+	freeNode(root);
+	printf("freed nodes: %d\n",free_c);
 	return 0;
 }
 
-node* createNode(){
+node* createNode(node* parent){
 	//test("create node");
 	node* n = malloc(sizeof(node));
 	n->id = id_count++;
-	n->level = 0;
+	if(parent == NULL){
+		n->level = 0;
+	}
+	else{
+		n->level = parent->level+1;
+	}
 	n->child_n = 0;
 	//test("end create node");
 	return n;	
@@ -97,7 +114,7 @@ void printNode(node* node){
 	printRect(&node->mbr);
 }
 void printRect(rect* rect){
-	printf("x1 : %d, y1 : %d, x2 : %d, y2 : %d\n",rect->x1,rect->y1,rect->x2,rect->y2);
+	printf("(%d,%d)(%d,%d)\n",rect->x1,rect->y1,rect->x2,rect->y2);
 }
 void test(char t[]){
 	printf("%d:log %s\n",t_c++,t);
@@ -105,10 +122,24 @@ void test(char t[]){
 void freeNode(node* node){
 	if(node == NULL) return;
 	int i= 0;
-	for(i = 0;i < M+1;i++){
+	for(i = 0; i < M+1; i++){
 		if(node->child[i] != NULL)
 			freeNode(node->child[i]);
 	}
-	test("freeing a node");
+	//test("freeing a node");
+	free_c++;
 	free(node);
+}
+void printTree(node* node){
+	//printNode(node);
+	int i;
+	for(i = 0;i<node->level;i++){
+		printf("\t");
+	}
+	printf("id:%d-lv:%d-(%d,%d)(%d,%d)\n",node->id,node->level,node->mbr.x1,node->mbr.y1,node->mbr.x2,node->mbr.y2);
+	i=0;
+	while(node->child[i] != NULL && i<M){
+			printTree(node->child[i++]);
+			
+	}
 }
