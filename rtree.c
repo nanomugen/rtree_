@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+
 
 #define M 6
 #define m 3
@@ -22,30 +24,33 @@ typedef struct node{
 } node;
 
 //GLOBAL VARS
-node *root=NULL;
-int id_count=0;
-int t_c = 0;
-int free_c = 0;
-int max_size = 1000;
+node *root=NULL;//root node, global address
+int id_count=0;//counter of ids to assign, later the ids will be used to store the data structure to fast recover(instead of add all the data in the tree again)
+int t_c = 0;//counter of test logs used
+int free_c = 0;//counter of freed nodes with the function freeNode
+int max_size = 1000;//temp size of a bound to the mbr of root and the children
+//CLOCK VARS
+clock_t start, end;
+double cpu_time_used;
 
-node* createNode(node*);//create an empty node id is made of global int id_count incrementation
-rect* createRect(int,int,int,int);//create a rect with x1,y1,x2,y2
-void setNode(node,rect);//set the mbr of node
+//INSERT FUNCIONS
+void Insert(int,int,int,int);//add the rect of the coord params to the root(global)
+node* chooseLeaf(node*);//choose the best node to insertion
+void splitNode(node*);//make a split in the node and add the new one to the parent of the original
+void adjustTree(node*);//adjust tree see if the node needs an overflow rearrange due to splitNode and do it in the parent if needed
+void pickSeeds(node*);//pick seed takes two nodes to make a split, using linear or quadratic search for the two worst pair to be together
+node* pickNext(node*);//see where to put the left nodes after pickSeeds()
 
-void addData(rect);//add the rect to the root(global)
-node chooseLeaf(node);//choose the best node to add the data
-void splitNode(node);//make a split in the node and add the new one to the parent of the original
-void adjustTree(node);//adjust tree see if the node needs an overflow rearrange due to splitNode and do it in the parent if needed
-void pickSeeds(node);//pick seed takes two nodes to make a split, using linear or quadratic search for the two worst pair to be together
-node pickNext(node);//see where to put the left nodes after pickSeeds()
+void search(rect);//search the data of rect if intercect some data in the rtree
+int intersect(rect*,rect*);//search if the two rects intercects each other: 1 true 0 false
 
-void searchData(rect);//search the data of rect if intercect some data in the rtree
-int intersect(rect,rect);//search if the two rects intercects each other
-
-int isLeaf(node);//maybe dont need, use some info in the node struct
+int isLeaf(node*);//maybe dont need, use some info in the node struct: 1 true 0 false
 
 
 //AUX FUNCTIONS
+node* createEmptyNode();
+node* createNode(node*);//create an empty node id is made of global int id_count incrementation
+void setMbr(node*,int,int,int,int);
 void separator();
 void printNode(node*);
 void printRect(rect*);
@@ -56,7 +61,7 @@ void printTree(node*);//print from root
 
 //MAIN FUNCTION
 int main(){
-
+	start = clock();
 	root = createNode(NULL);
 	root->mbr.x2 = max_size;
 	root->mbr.y2 = max_size;
@@ -82,11 +87,28 @@ int main(){
 			}
 		}
 	}
+
+
 	printTree(root);
-	//printRect(&root->mbr);
 	freeNode(root);
 	printf("freed nodes: %d\n",free_c);
+	end = clock();
+	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+	printf("time elapsed: %f\n",cpu_time_used);
 	return 0;
+}
+
+
+//===============================================================================================
+//AUX FUNCIONS
+//===============================================================================================
+node* createEmptyNode(){
+	//test("create node");
+	node* n = malloc(sizeof(node));
+	n->id = id_count++;
+	n->level = 0;
+	n->child_n = 0;
+	return n;	
 }
 
 node* createNode(node* parent){
@@ -98,10 +120,17 @@ node* createNode(node* parent){
 	}
 	else{
 		n->level = parent->level+1;
+		n->parent = parent;
 	}
 	n->child_n = 0;
 	//test("end create node");
 	return n;	
+}
+void setMbr(node* node,int x1, int y1, int x2, int y2){
+	node->mbr.x1 = x1;
+	node->mbr.y1 = y1;
+	node->mbr.x2 = x2;
+	node->mbr.y2 = y2;
 }
 
 void separator(){
@@ -130,16 +159,58 @@ void freeNode(node* node){
 	free_c++;
 	free(node);
 }
+
 void printTree(node* node){
 	//printNode(node);
 	int i;
 	for(i = 0;i<node->level;i++){
 		printf("\t");
 	}
-	printf("id:%d-lv:%d-(%d,%d)(%d,%d)\n",node->id,node->level,node->mbr.x1,node->mbr.y1,node->mbr.x2,node->mbr.y2);
+	printf("id:%d-lv:%d-(%d,%d)(%d,%d)-adr:%p-dad:%p\n",node->id,node->level,node->mbr.x1,node->mbr.y1,node->mbr.x2,node->mbr.y2,node,node->parent);
 	i=0;
 	while(node->child[i] != NULL && i<M){
 			printTree(node->child[i++]);
 			
 	}
+}
+
+//===============================================================================================
+//INSERT FUNCIONS
+//===============================================================================================
+
+void Insert(int x1, int y1, int x2, int y2){
+	node* data = createEmptyNode();
+	setMbr(data,x1,y1,x2,y2);
+	node* selected = chooseLeaf(root);
+	int i = 0;
+	while(selected->child[i]!=NULL){
+		if(i>=M+2){
+			printf("erro insertion on M+2 node\n");
+			return;
+		}
+		i++;
+	}
+	selected->child[i]=data;
+	data->parent=selected;
+	if(i==M+1){
+		splitNode(selected);
+	}
+	adjustTree(selected);
+	
+
+}
+node* chooseLeaf(node* node){
+	return node;
+}
+void splitNode(node* node){
+
+}
+void adjustTree(node* node){
+	
+}
+void pickSeeds(node* node){
+	
+}
+node* pickNext(node* node){
+	return node;
 }
