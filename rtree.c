@@ -35,7 +35,7 @@ double cpu_time_used;
 
 //INSERT FUNCIONS
 void Insert(int,int,int,int);//add the rect of the coord params to the root(global)
-node* chooseLeaf(node*);//choose the best node to insertion
+node* chooseLeaf(node*,rect*);//choose the best node to insertion
 void splitNode(node*);//make a split in the node and add the new one to the parent of the original
 void adjustTree(node*);//adjust tree see if the node needs an overflow rearrange due to splitNode and do it in the parent if needed
 void pickSeeds(node*);//pick seed takes two nodes to make a split, using linear or quadratic search for the two worst pair to be together
@@ -57,7 +57,8 @@ void printRect(rect*);
 void test(char t[]);
 void freeNode(node*);//maybe needs tail recursion
 void printTree(node*);//print from root
-
+int areaMbr(rect*,rect*);//calculate the area of the mbr of two rects
+int area(rect*);
 
 //MAIN FUNCTION
 int main(){
@@ -159,6 +160,10 @@ void freeNode(node* node){
 	free_c++;
 	free(node);
 }
+int area(rect* r){
+	if(r == NULL) return -1;
+	return (r->x2-r->x1)*(r->y2-r->y1);
+}
 
 void printTree(node* node){
 	//printNode(node);
@@ -174,6 +179,20 @@ void printTree(node* node){
 	}
 }
 
+int areaMbr(rect* r1,rect* r2){
+	if(r1 == NULL || r2 == NULL) return -1;
+	int x1,x2,y1,y2;
+	if(r1->x1 < r2->x1) x1 = r1->x1;
+	else x1 = r2->x1;
+	if(r1->x2 > r2->x2) x2 = r1->x2;
+	else x2 = r2->x2;
+	if(r1->y2 > r2->y2) y2 = r1->y2;
+	else y2 = r2->y2;
+	if(r1->y1 < r2->y1) y1 = r1->y1;
+	else y1 = r2->y1;
+	return (y2-y1)*(x2-x1);
+}
+
 //===============================================================================================
 //INSERT FUNCIONS
 //===============================================================================================
@@ -181,7 +200,7 @@ void printTree(node* node){
 void Insert(int x1, int y1, int x2, int y2){
 	node* data = createEmptyNode();
 	setMbr(data,x1,y1,x2,y2);
-	node* selected = chooseLeaf(root);
+	node* selected = chooseLeaf(root,&data->mbr);
 	int i = 0;
 	while(selected->child[i]!=NULL){
 		if(i>=M+2){
@@ -199,8 +218,29 @@ void Insert(int x1, int y1, int x2, int y2){
 	
 
 }
-node* chooseLeaf(node* node){
-	return node;
+node* chooseLeaf(node* node, rect* dataRect){
+	if(node == NULL) return NULL;
+	if(root == node && root->child[0]==NULL) return root;//this means root is leaf and has zero data entries
+	if(node->child[0]->child[0]==NULL) return node;//this means this node has a child and this child doesnt has a child, which means it is data, wich menas the node is leaf
+	//if is not leaf need to find the least increasing node to add the data
+	int area_diff=-1;
+	int i = 0, node_choosen = 0;
+	while(i < M && node->child[i] != NULL){
+		//calcular area e comparar com area_diff
+		int area_calc = areaMbr(&node->child[i]->mbr,dataRect) - area(&node->child[i]->mbr);
+		if(area_diff == -1){
+			area_diff = area_calc;
+
+		}
+		else{
+			if(area_calc < area_diff){
+				area_diff = area_calc;
+				node_choosen = i;
+			}
+		}
+		i++;
+	}
+	return chooseLeaf(node->child[node_choosen],dataRect);
 }
 void splitNode(node* node){
 
