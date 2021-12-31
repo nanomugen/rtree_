@@ -62,35 +62,24 @@ int area(rect*);
 void adjustNode(node**);//adjust the node param only, used in the splitNode due to changing mbr
 void propagateLevel(node*);//when split the root need to grow a level
 
-void test1(node**,node**);//receives two pointers of pointers and swap the adress of these two 
-void test2(node*);//create two children in node and calls test1, compare before and after 
-void test3(node*,node*);//receive two pointers of node and make a change in the content of the nodes (mbr in this case)
-void test4(node*);//create two children in node and calls test3, compare before and after 
-//this test shows that some functions will need to use pointer of pointer of node (when need to swap an adress of a pointer, for example)
-//when other functions will need only to use a pointer of node (like change a var content which is not related with the address, like the node->mbr.x1)
-void test5(int[]);//receive a int[] and modify, create another int[] and calls test6
-void test6(int[],int[]);//receive two int[] and swap their values and return
-//the int[] works like a adr pointer aparently
 
-void testpointer(node** n){
-	printf("inside testpointer\n");
-	printf("addr of n: %p\n",n);
-	node* n1 = createEmptyNode();
-	n1->mbr.x1 = 543;
-	n = &n1;
-	printf("end of testpointer\n");
-	printf("addr of n: %p\n",n);
-}
 //MAIN FUNCTION
-int main(){
-
-	
+int main(int argc, char *argv[]){
+	printf("program name: %s\n",argv[0]);
+	long k = 10;
+	if(argc==1){
+		printf("no parameter, so k=10\n");
+	}
+	else{
+		k = strtol(argv[1], NULL, 10);
+		printf("other argument so k = %ld\n",k);
+	}
 	start = clock();
 	root= createNode(NULL);
-	printTree(root);
-	printf("\n");
+	//printTree(root);
+	//printf("\n");
 	int i;
-	for(i=0;i<371;i++){
+	for(i=0;i<k;i++){
 		Insert(i,i,i+1,i+1);
 	}
 	
@@ -121,7 +110,7 @@ node* createEmptyNode(){
 }
 
 node* createNode(node* parent){
-	printf("createNode %d\n",id_count);
+	//printf("createNode %d\n",id_count);
 	node* n = malloc(sizeof(node));
 	n->id = id_count++;
 	if(parent == NULL){
@@ -168,9 +157,6 @@ void printNode(node* n){
 void printRect(rect* rect){
 	printf("(%d,%d)(%d,%d)\n",rect->x1,rect->y1,rect->x2,rect->y2);
 }
-void test(char t[]){
-	printf("%d:log %s\n",t_c++,t);
-}
 void freeNode(node** node){
 	if(node == NULL) return;
 	int i = 0;
@@ -187,13 +173,26 @@ int area(rect* r){
 	return (r->x2-r->x1)*(r->y2-r->y1);
 }
 
-void printTree(node* n){
+/* void printTree(node* n){
 	int i;
 	
 	for(i = 0;i<n->level;i++){
 		printf("\t");
 	}
 	printf("id:%d-lv:%d-(%d,%d)(%d,%d)-adr:%p-dad:%p\n",n->id,n->level,n->mbr.x1,n->mbr.y1,n->mbr.x2,n->mbr.y2,n,n->parent);
+	i=0;
+	while(n->child[i] != NULL && i<=M){
+			printTree(n->child[i]);
+			i++;
+	}
+} */
+void printTree(node* n){
+	int i;
+	
+	for(i = 0;i<n->level;i++){
+		printf("\t");
+	}
+	printf("id:%d-lv:%d-(%d,%d)(%d,%d)\n",n->id,n->level,n->mbr.x1,n->mbr.y1,n->mbr.x2,n->mbr.y2);
 	i=0;
 	while(n->child[i] != NULL && i<=M){
 			printTree(n->child[i]);
@@ -221,7 +220,7 @@ void adjustNode(node** n){
 	if(n == NULL)return;
 	if(*n == NULL)return;
 	if((*n)->child[0] == NULL)return;
-	printf("init of adjustNode\n");
+	//printf("init of adjustNode\n");
 	int i=1;
 	rect aux = (*n)->child[0]->mbr;//this is a copy? 
 	(*n)->child[0]->parent = *n;
@@ -256,64 +255,12 @@ void propagateLevel(node* n){
 	}
 }
 
-
-void test1(node** n1,node** n2){//this one works to swap the children in test2
-	node* aux = *n1;
-	*n1=*n2;
-	*n2=aux;
-}
-void test2(node* node){
-	node->child[0] = createNode(node);
-	node->child[1] = createNode(node);
-	printTree(node);
-	test1(&node->child[0],&node->child[1]);
-	printTree(node);	
-}
-void test3(node* n1,node* n2){
-	n1->mbr.x1 = 3;
-	n2->mbr.y1 = 6;
-	
-}
-void test4(node* node){
-	node->child[0] = createNode(node);
-	node->child[1] = createNode(node);
-	printTree(node);
-	test3(node->child[0],node->child[1]);
-	printTree(node);
-}
-void test5(int a[]){
-	printf("t5:a[0]: %d, a[1]: %d\n",a[0],a[1]);
-	a[0] = 0;
-	a[1] = 1;
-	printf("t5:a[0]: %d, a[1]: %d\n",a[0],a[1]);
-	int b[2];
-	b[0] = 9;
-	b[1] = 8;
-	printf("t5:b[0]: %d, b[1]: %d\n",b[0],b[1]);
-	test6(a,b);
-	printf("t5:a[0]: %d, a[1]: %d\n",a[0],a[1]);
-	printf("t5:b[0]: %d, b[1]: %d\n",b[0],b[1]);
-}
-void test6(int a[],int b[]){
-	printf("t6:a[0]: %d, a[1]: %d\n",a[0],a[1]);
-	printf("t6:b[0]: %d, b[1]: %d\n",b[0],b[1]);
-	int c[2];
-	c[0] = a[0];
-	a[0] = b[0];
-	c[1] = b[1];
-	b[1] = a[1];
-	b[0] = c[0];
-	a[1] = c[1];
-	printf("t6:a[0]: %d, a[1]: %d\n",a[0],a[1]);
-	printf("t6:b[0]: %d, b[1]: %d\n",b[0],b[1]);
-}
-
 //===============================================================================================
 //INSERT FUNCIONS
 //===============================================================================================
 
 void Insert(int x1, int y1, int x2, int y2){
-	printf("inserting the data: %d,%d,%d,%d\n",x1,y1,x2,y2);
+	//printf("inserting the data: %d,%d,%d,%d\n",x1,y1,x2,y2);
 	node* data = createEmptyNode();
 	setMbr(data,x1,y1,x2,y2);
 	node** selected = chooseLeaf(&root,&data->mbr);
@@ -328,10 +275,10 @@ void Insert(int x1, int y1, int x2, int y2){
 	(*selected)->child[i]=data;
 	data->parent=(*selected);
 	data->level = (*selected)->level+1;
-	printTree(root);
+	//printTree(root);
 	adjustTree(selected);
 	//printTree(root);
-	printf("data added\n");
+	//printf("data added\n");
 
 }
 node** chooseLeaf(node** n, rect* dataRect){
@@ -339,7 +286,7 @@ node** chooseLeaf(node** n, rect* dataRect){
 	if(*n == NULL) return NULL;
 	if(root == *n && (root)->child[0]==NULL) return &root;//this means root is leaf and has zero data entries
 	if((*n)->child[0]->child[0]==NULL) {
-		printf("id of selected node: %d\n",(*n)->id);
+		//printf("id of selected node: %d\n",(*n)->id);
 		return n;//this means this node has a child and this child doesnt has a child, which means it is data, wich menas the node is leaf
 	}
 	//if is not leaf need to find the least increasing node to add the data
@@ -370,9 +317,9 @@ void splitNode(node** n){ //it is possible that this function needs a pointer of
 	int i;
 	int split[2];
 	pickSeeds(*n,split);//CRITICAL
-	printf("inside splitNode seeds: %d,%d\n",split[0],split[1]);
-	printf("**test split [0] and [1]: %d,%d\n",split[0],split[1]);
-	printf("*n->id: %d\n",(*n)->id);
+	//printf("inside splitNode seeds: %d,%d\n",split[0],split[1]);
+	//printf("**test split [0] and [1]: %d,%d\n",split[0],split[1]);
+	//printf("*n->id: %d\n",(*n)->id);
 	int max = m+1;
 	node* n1 = createNode((*n)->parent);
 	node* n2 = createNode((*n)->parent);
@@ -382,7 +329,7 @@ void splitNode(node** n){ //it is possible that this function needs a pointer of
 	i=0;
 	while((*n)->child[i]!= NULL && i < M+1){
 		if(i != split[0] && i != split[1]){
-			printf("entrou no if com o indice: %d, i_n1: %d, i_n2: %d\n",i,i_n1,i_n2);
+			//printf("entrou no if com o indice: %d, i_n1: %d, i_n2: %d\n",i,i_n1,i_n2);
 			if(i_n1 < max){
 				if(areaMbr(&n1->child[0]->mbr,&(*n)->child[i]->mbr) < areaMbr(&n2->child[0]->mbr,&(*n)->child[i]->mbr) || i_n2 >= max-1){
 					n1->child[i_n1] = (*n)->child[i];
@@ -401,10 +348,10 @@ void splitNode(node** n){ //it is possible that this function needs a pointer of
 		}
 		i++;
 	}
-	printNode(n1);
-	printNode(n2);
+	//printNode(n1);
+	//printNode(n2);
 	if(*n == root){//AQUI FALTA DAR FREE EM ALGUMA COISA?
-		printf("split root\n");
+		//printf("split root\n");
 		free(root);
 		root= createEmptyNode();
 		(root)->id = 0;
@@ -413,13 +360,13 @@ void splitNode(node** n){ //it is possible that this function needs a pointer of
 		n1->parent = root;
 		n2->parent = root;
 		propagateLevel(root);
-		printf("end of n == root\n");
+		//printf("end of n == root\n");
 	}
 	else{
-		printf("split node\n");
+		//printf("split node\n");
 		i=0;
-		printf("## printing root:\n");
-		printNode(root);
+		//printf("## printing root:\n");
+		//printNode(root);
 		if((*n)->parent == root){
 			while(i<M && root->child[i] != NULL){
 				if(root->child[i]== *n){
@@ -433,17 +380,17 @@ void splitNode(node** n){ //it is possible that this function needs a pointer of
 		else{
 			while(i<M && n1->parent->child[i] != NULL){
 				if(n1->parent->child[i] == *n){
-					printf("n1 index: %d,n->id: %d n1->id:%d n->dad: %p n1->dad: %p\n",i,(*n)->id,n1->id,(*n)->parent,n1->parent);
+					//printf("n1 index: %d,n->id: %d n1->id:%d n->dad: %p n1->dad: %p\n",i,(*n)->id,n1->id,(*n)->parent,n1->parent);
 					free(*n);
 					n1->parent->child[i] = n1;//pode ser que dê bosta, mas acho que não
-					printf("n1 index: %d,n->id: %d n1->id:%d n->dad: %p n1->dad: %p\n",i,(*n)->id,n1->id,(*n)->parent,n1->parent);
+					//printf("n1 index: %d,n->id: %d n1->id:%d n->dad: %p n1->dad: %p\n",i,(*n)->id,n1->id,(*n)->parent,n1->parent);
 				}
 				i++;
 			}
-			printf("n2 index: %d\n",i);
+			//printf("n2 index: %d\n",i);
 			n1->parent->child[i] = n2;
-			printf("## printing n:\n");
-			printNode(*n);
+			//printf("## printing n:\n");
+			//printNode(*n);
 		}
 		
 		
@@ -452,22 +399,22 @@ void splitNode(node** n){ //it is possible that this function needs a pointer of
 	//printTree(root);
 	adjustNode(&n1);
 	adjustNode(&n2);
-	printf("## printing root:\n");
-	printNode(root);
+	//printf("## printing root:\n");
+	//printNode(root);
 }
 
 void adjustTree(node** n){
 	//maybe adjust need to pass the child that will make the adjust, but need to see if need to adjust if split but i guess will not
 	if(n == NULL)return;
 	if((*n)->child[0] == NULL)return;
-	printf("init of adjustTree\n");
+	//printf("init of adjustTree\n");
 	//printf("printing n: \n");
 	//printNode(*n);
 	if((*n)->child[M] != NULL){
-		printf("\nadj->split node: %d adr: %p\n\n",(*n)->id,(*n));
+		//printf("\nadj->split node: %d adr: %p\n\n",(*n)->id,(*n));
 		splitNode(n);
-		printf("\nend of adj->split node: %d\n\n",(*n)->id);
-		printTree(root);
+		//printf("\nend of adj->split node: %d\n\n",(*n)->id);
+		//printTree(root);
 	}
 	int i=1;
 	rect aux = (*n)->child[0]->mbr;//this is a copy? 
@@ -487,9 +434,9 @@ void adjustTree(node** n){
 		i++;
 	}
 	(*n)->mbr = aux;//is this a copy??
-	printf("\n\n");
-	printTree(*n);
-	printf("AFTER ADJUST\n");
+	//printf("\n\n");
+	//printTree(*n);
+	//printf("AFTER ADJUST\n");
 	if((*n) != root){
 		adjustTree(&(*n)->parent);
 	}
@@ -497,7 +444,7 @@ void adjustTree(node** n){
 }
 void pickSeeds(node* n,int split[]){
 	if(n == NULL) return;
-	printf("init of pickSeeds\n");
+	//printf("init of pickSeeds\n");
 	int i, i1 = 0, i2 = 1;
 	if(areaMbr(&n->child[0]->mbr,&n->child[1]->mbr) > areaMbr(&n->child[0]->mbr,&n->child[2]->mbr)){
 		if(areaMbr(&n->child[0]->mbr,&n->child[1]->mbr) > areaMbr(&n->child[1]->mbr,&n->child[2]->mbr)){
@@ -539,5 +486,5 @@ void pickSeeds(node* n,int split[]){
 	}
 	split[0] = i1;
 	split[1] = i2;
-	printf("inside pickSeed seeds: %d,%d\n",split[0],split[1]);
+	//printf("inside pickSeed seeds: %d,%d\n",split[0],split[1]);
 }
