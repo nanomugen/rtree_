@@ -35,9 +35,9 @@ double cpu_time_used;
 
 //INSERT FUNCIONS
 void Insert(int,int,int,int);//add the rect of the coord params to the root(global)
-node* chooseLeaf(node*,rect*);//choose the best node to insertion
-void splitNode(node*);//make a split in the node and add the new one to the parent of the original
-void adjustTree(node*);//adjust tree see if the node needs an overflow rearrange due to splitNode and do it in the parent if needed
+node** chooseLeaf(node**,rect*);//choose the best node to insertion
+void splitNode(node**);//make a split in the node and add the new one to the parent of the original
+void adjustTree(node**);//adjust tree see if the node needs an overflow rearrange due to splitNode and do it in the parent if needed
 void pickSeeds(node* n,int split[]);//pick seed takes two nodes to make a split, using linear or quadratic search for the two worst pair to be together
 node* pickNext(node*);//see where to put the left nodes after pickSeeds()
 
@@ -59,6 +59,8 @@ void freeNode(node**);//maybe needs tail recursion
 void printTree(node*);//print from root
 int areaMbr(rect*,rect*);//calculate the area of the mbr of two rects
 int area(rect*);
+void adjustNode(node**);//adjust the node param only, used in the splitNode due to changing mbr
+void propagateLevel(node*);//when split the root need to grow a level
 
 void test1(node**,node**);//receives two pointers of pointers and swap the adress of these two 
 void test2(node*);//create two children in node and calls test1, compare before and after 
@@ -70,62 +72,33 @@ void test5(int[]);//receive a int[] and modify, create another int[] and calls t
 void test6(int[],int[]);//receive two int[] and swap their values and return
 //the int[] works like a adr pointer aparently
 
-
+void testpointer(node** n){
+	printf("inside testpointer\n");
+	printf("addr of n: %p\n",n);
+	node* n1 = createEmptyNode();
+	n1->mbr.x1 = 543;
+	n = &n1;
+	printf("end of testpointer\n");
+	printf("addr of n: %p\n",n);
+}
 //MAIN FUNCTION
 int main(){
 
-/* 	root = createNode(NULL);
-	root->mbr.x2 = max_size;
-	root->mbr.y2 = max_size;
-	int i,j,k;
-	for(i = 0; i < M; i++){
-		root->child[i] = createNode(root);
-		root->child[i]->mbr.x1 = i*max_size/6;
-		root->child[i]->mbr.y1 = i*max_size/6;
-		root->child[i]->mbr.x2 = (i+1)*max_size/6;
-		root->child[i]->mbr.y2 = (i+1)*max_size/6;
-		for(j = 0;j < M;j++){
-			root->child[i]->child[j] = createNode(root->child[i]);
-			root->child[i]->child[j]->mbr.x1 = (i*max_size/6)+(j*max_size/36);
-			root->child[i]->child[j]->mbr.y1 = (i*max_size/6)+(j*max_size/36);
-			root->child[i]->child[j]->mbr.x2 = (i*max_size/6)+((j+1)*max_size/36);
-			root->child[i]->child[j]->mbr.y2 = (i*max_size/6)+((j+1)*max_size/36);
-			for(k = 0;k < M;k++){
-				root->child[i]->child[j]->child[k] = createNode(root->child[i]->child[j]);
-				root->child[i]->child[j]->child[k]->mbr.x1 = (i*max_size/6)+(j*max_size/36)+(k*max_size/(6*36));
-				root->child[i]->child[j]->child[k]->mbr.y1 = (i*max_size/6)+(j*max_size/36)+(k*max_size/(6*36));
-				root->child[i]->child[j]->child[k]->mbr.x2 = (i*max_size/6)+(j*max_size/36)+((k+1)*max_size/(6*36));
-				root->child[i]->child[j]->child[k]->mbr.y2 = (i*max_size/6)+(j*max_size/36)+((k+1)*max_size/(6*36));
-			}
-		}
-	}
-
-
-	printTree(root);
-	freeNode(&root);
-	printf("freed nodes: %d\n",free_c);
-
 	
-	node* testNode = createEmptyNode();
-	printf("test node: %p\n",testNode);
-	printTree(testNode);
-	test4(testNode);
-	printTree(testNode);
-
-	freeNode(&testNode);
-	separator();
-	int a[2];
-	a[0] = -1;
-	a[1] = -2;
-	printf("main:a[0]: %d, a[1]: %d\n",a[0],a[1]);
-	test5(a);
-	printf("main:a[0]: %d, a[1]: %d\n",a[0],a[1]); */
-
 	start = clock();
-	root = createNode(NULL);
+	root= createNode(NULL);
+	printTree(root);
+	printf("\n");
+	int i;
+	for(i=0;i<371;i++){
+		Insert(i,i,i+1,i+1);
+	}
+	
+	printTree(root);
 	end = clock();
 	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 	printf("time elapsed: %f\n",cpu_time_used);
+	freeNode(&root);
 	return 0;
 }
 
@@ -148,14 +121,14 @@ node* createEmptyNode(){
 }
 
 node* createNode(node* parent){
-	//test("create node");
+	printf("createNode %d\n",id_count);
 	node* n = malloc(sizeof(node));
 	n->id = id_count++;
 	if(parent == NULL){
 		n->level = 0;
 	}
 	else{
-		n->level = parent->level+1;
+		n->level = (parent)->level+1;
 		n->parent = parent;
 	}
 	n->child_n = 0;
@@ -176,11 +149,20 @@ void setMbr(node* node,int x1, int y1, int x2, int y2){
 void separator(){
 	printf("\n===========================================================\n\n");
 }
-void printNode(node* node){
+void printNode(node* n){
 	//test("begin printnode");
-	if(node == 	NULL)return;
-	printf("node id : %d\nnode level : %d\nadr: %p\n",node->id,node->level,node);
-	printRect(&node->mbr);
+	if(n == NULL){
+		printf("node null\n");
+		return;
+	}
+	printf("node id : %d\nnode level : %d\nadr: %p\ndad: %p\n",n->id,n->level,n,n->parent);
+	printRect(&n->mbr);
+	int i=0;
+	while(i<M+1 && n->child[i] != NULL){
+		printf("child[%d] id: %d\n",i, n->child[i]->id);
+		i++;
+	}
+	printf("--\n");
 
 }
 void printRect(rect* rect){
@@ -205,22 +187,23 @@ int area(rect* r){
 	return (r->x2-r->x1)*(r->y2-r->y1);
 }
 
-void printTree(node* node){
-	//printNode(node);
+void printTree(node* n){
 	int i;
-	for(i = 0;i<node->level;i++){
+	
+	for(i = 0;i<n->level;i++){
 		printf("\t");
 	}
-	printf("id:%d-lv:%d-(%d,%d)(%d,%d)-adr:%p-dad:%p\n",node->id,node->level,node->mbr.x1,node->mbr.y1,node->mbr.x2,node->mbr.y2,node,node->parent);
+	printf("id:%d-lv:%d-(%d,%d)(%d,%d)-adr:%p-dad:%p\n",n->id,n->level,n->mbr.x1,n->mbr.y1,n->mbr.x2,n->mbr.y2,n,n->parent);
 	i=0;
-	while(node->child[i] != NULL && i<M){
-			printTree(node->child[i++]);
-			
+	while(n->child[i] != NULL && i<=M){
+			printTree(n->child[i]);
+			i++;
 	}
 }
 
 int areaMbr(rect* r1,rect* r2){
 	if(r1 == NULL || r2 == NULL) return -1;
+	//printf("dentro do areaMbr\n");
 	int x1,x2,y1,y2;
 	if(r1->x1 < r2->x1) x1 = r1->x1;
 	else x1 = r2->x1;
@@ -230,7 +213,47 @@ int areaMbr(rect* r1,rect* r2){
 	else y2 = r2->y2;
 	if(r1->y1 < r2->y1) y1 = r1->y1;
 	else y1 = r2->y1;
+	//printf("area: %d\n",(y2-y1)*(x2-x1));
 	return (y2-y1)*(x2-x1);
+}
+
+void adjustNode(node** n){
+	if(n == NULL)return;
+	if(*n == NULL)return;
+	if((*n)->child[0] == NULL)return;
+	printf("init of adjustNode\n");
+	int i=1;
+	rect aux = (*n)->child[0]->mbr;//this is a copy? 
+	(*n)->child[0]->parent = *n;
+	while(i<M && (*n)->child[i] != NULL){
+		if((*n)->child[i]->mbr.x1 < aux.x1){
+			aux.x1 = (*n)->child[i]->mbr.x1;
+		}
+		if((*n)->child[i]->mbr.y1 < aux.y1){
+			aux.y1 = (*n)->child[i]->mbr.y1;
+		}
+		if((*n)->child[i]->mbr.x2 > aux.x2){
+			aux.x2 = (*n)->child[i]->mbr.x2;
+		}
+		if((*n)->child[i]->mbr.y2 > aux.y2){
+			aux.y2 = (*n)->child[i]->mbr.y2;
+		}
+		(*n)->child[i]->parent = *n;
+		i++;
+	}
+	(*n)->mbr = aux;//is this a copy??
+	
+	
+}
+
+void propagateLevel(node* n){
+	if(n == NULL) return;
+	int i=0;
+	while(n->child[i] != NULL){
+		n->child[i]->level = n->child[i]->level + 1;
+		propagateLevel(n->child[i]);
+		i++;
+	}
 }
 
 
@@ -290,37 +313,41 @@ void test6(int a[],int b[]){
 //===============================================================================================
 
 void Insert(int x1, int y1, int x2, int y2){
+	printf("inserting the data: %d,%d,%d,%d\n",x1,y1,x2,y2);
 	node* data = createEmptyNode();
 	setMbr(data,x1,y1,x2,y2);
-	node* selected = chooseLeaf(root,&data->mbr);
+	node** selected = chooseLeaf(&root,&data->mbr);
 	int i = 0;
-	while(selected->child[i]!=NULL){
+	while((*selected)->child[i]!=NULL){
 		if(i>=M+1){
 			printf("erro insertion on M+1 node\n");
 			return;
 		}
 		i++;
 	}
-	selected->child[i]=data;
-	data->parent=selected;
-	data->level = selected->level+1;
-	if(i==M){
-		splitNode(selected);
-	}
+	(*selected)->child[i]=data;
+	data->parent=(*selected);
+	data->level = (*selected)->level+1;
+	printTree(root);
 	adjustTree(selected);
-	
+	//printTree(root);
+	printf("data added\n");
 
 }
-node* chooseLeaf(node* node, rect* dataRect){
-	if(node == NULL) return NULL;
-	if(root == node && root->child[0]==NULL) return root;//this means root is leaf and has zero data entries
-	if(node->child[0]->child[0]==NULL) return node;//this means this node has a child and this child doesnt has a child, which means it is data, wich menas the node is leaf
+node** chooseLeaf(node** n, rect* dataRect){
+	if(n == NULL) return NULL;
+	if(*n == NULL) return NULL;
+	if(root == *n && (root)->child[0]==NULL) return &root;//this means root is leaf and has zero data entries
+	if((*n)->child[0]->child[0]==NULL) {
+		printf("id of selected node: %d\n",(*n)->id);
+		return n;//this means this node has a child and this child doesnt has a child, which means it is data, wich menas the node is leaf
+	}
 	//if is not leaf need to find the least increasing node to add the data
 	int area_diff=-1;
 	int i = 0, node_choosen = 0;
-	while(i < M && node->child[i] != NULL){//run until M-1, this node doesnt supose to has a M+1 child(child[M])
+	while(i < M && (*n)->child[i] != NULL){//run until M-1, this node doesnt supose to has a M+1 child(child[M])
 		//calcular area e comparar com area_diff
-		int area_calc = areaMbr(&node->child[i]->mbr,dataRect) - area(&node->child[i]->mbr);//test if can get negative, but probably doesnt
+		int area_calc = areaMbr(&(*n)->child[i]->mbr,dataRect) - area(&(*n)->child[i]->mbr);//test if can get negative, but probably doesnt
 		if(area_diff == -1){
 			area_diff = area_calc;
 
@@ -333,78 +360,144 @@ node* chooseLeaf(node* node, rect* dataRect){
 		}
 		i++;
 	}
-	return chooseLeaf(node->child[node_choosen],dataRect);
+	return chooseLeaf(&((*n)->child[node_choosen]),dataRect);
 }
-void splitNode(node* n){ //it is possible that this function needs a pointer of pointer aproach //CRITICAL//CRITICAL//CRITICAL
+
+void splitNode(node** n){ //it is possible that this function needs a pointer of pointer aproach //CRITICAL//CRITICAL//CRITICAL
 	if (n == NULL) return;
-	if(n->child[M] == NULL) return;//this means the node doesnt have M+1 children
+	if(*n == NULL) return;
+	if((*n)->child[M] == NULL) return;//this means the node doesnt have M+1 children
 	int i;
 	int split[2];
-	pickSeeds(n,split);//CRITICAL
-	
-	node* aux = createEmptyNode();
-	node* aux2 = createEmptyNode();
-	int index_a[m],index_b[m],ia=1,ib=1;
-	index_a[0] = split[0];
-	aux->child[0] = n->child[split[0]];
-	index_b[0] = split[1];
-	aux2->child[0] = n->child[split[1]];
-	rect rect_a,rect_b;
-	rect_a = n->child[split[0]]->mbr;//CRITICAL
-	rect_b = n->child[split[1]]->mbr;//CRITICAL
-	for(i=0;i<M+1;i++){
-		if(i != split[0] && i != split[1]){//to not count the two seeds
-			if(ia<m){
-				if(areaMbr(&rect_a,&n->child[i]->mbr) < areaMbr(&rect_b,&n->child[i]->mbr) || ib >=m){//CRITICAL
-					//index_a[ia] = i;
-					aux->child[ia] = n->child[i];//TODO adjust mbr
-					ia++;
+	pickSeeds(*n,split);//CRITICAL
+	printf("inside splitNode seeds: %d,%d\n",split[0],split[1]);
+	printf("**test split [0] and [1]: %d,%d\n",split[0],split[1]);
+	printf("*n->id: %d\n",(*n)->id);
+	int max = m+1;
+	node* n1 = createNode((*n)->parent);
+	node* n2 = createNode((*n)->parent);
+	n1->child[0] = (*n)->child[split[0]];
+	n2->child[0] = (*n)->child[split[1]];
+	int i_n1=1,i_n2=1;
+	i=0;
+	while((*n)->child[i]!= NULL && i < M+1){
+		if(i != split[0] && i != split[1]){
+			printf("entrou no if com o indice: %d, i_n1: %d, i_n2: %d\n",i,i_n1,i_n2);
+			if(i_n1 < max){
+				if(areaMbr(&n1->child[0]->mbr,&(*n)->child[i]->mbr) < areaMbr(&n2->child[0]->mbr,&(*n)->child[i]->mbr) || i_n2 >= max-1){
+					n1->child[i_n1] = (*n)->child[i];
+					i_n1++;
 				}
 				else{
-					//index_b[ib] = i;
-					aux2->child[ib] = n->child[i];//TODO adjust mbr
-					ib++;
+					n2->child[i_n2] = (*n)->child[i];
+					i_n2++;
 				}
 			}
 			else{
-				//index_b[ib] = i;
-				aux2->child[ib] = n->child[i];//TODO adjust mbr
-				ib++;
+				//inserir no n2
+				n2->child[i_n2] = (*n)->child[i];
+				i_n2++;
 			}
-		}		
+		}
+		i++;
 	}
-	if(n == root){//need to confirm if this does what i really think it does //CRITICAL
+	printNode(n1);
+	printNode(n2);
+	if(*n == root){//AQUI FALTA DAR FREE EM ALGUMA COISA?
+		printf("split root\n");
 		free(root);
-		root = createEmptyNode();
-		root->child[0] = aux;
-		root->child[1] = aux2;
-		//adjust the mbr
-		
+		root= createEmptyNode();
+		(root)->id = 0;
+		(root)->child[0] = n1;
+		(root)->child[1] = n2;
+		n1->parent = root;
+		n2->parent = root;
+		propagateLevel(root);
+		printf("end of n == root\n");
 	}
 	else{
-		aux->parent = n->parent;//CRITICAL
-		aux2->parent = n->parent;//CRITICAL
-		while(i < M+1 && aux->parent->child[i] != NULL){//CRITICAL
-			if(aux->parent->child[i] == n){//put aux in the place of n
-				free(n);
-				aux->parent->child[i] = aux;
+		printf("split node\n");
+		i=0;
+		printf("## printing root:\n");
+		printNode(root);
+		if((*n)->parent == root){
+			while(i<M && root->child[i] != NULL){
+				if(root->child[i]== *n){
+					free(*n);
+					root->child[i] = n1;
+				}
+				i++;
 			}
-			i++;
+			root->child[i] = n2;
 		}
-		aux->parent->child[i] = aux2;//put aux2 in the place o last empty child place
-		if(i>=M){//this means that aux2 is the M+1 esim child wich means the parent need a split
-			splitNode(aux->parent);
+		else{
+			while(i<M && n1->parent->child[i] != NULL){
+				if(n1->parent->child[i] == *n){
+					printf("n1 index: %d,n->id: %d n1->id:%d n->dad: %p n1->dad: %p\n",i,(*n)->id,n1->id,(*n)->parent,n1->parent);
+					free(*n);
+					n1->parent->child[i] = n1;//pode ser que dê bosta, mas acho que não
+					printf("n1 index: %d,n->id: %d n1->id:%d n->dad: %p n1->dad: %p\n",i,(*n)->id,n1->id,(*n)->parent,n1->parent);
+				}
+				i++;
+			}
+			printf("n2 index: %d\n",i);
+			n1->parent->child[i] = n2;
+			printf("## printing n:\n");
+			printNode(*n);
 		}
+		
+		
+		
 	}
-
-
+	//printTree(root);
+	adjustNode(&n1);
+	adjustNode(&n2);
+	printf("## printing root:\n");
+	printNode(root);
 }
 
-void adjustTree(node* node){
+void adjustTree(node** n){
 	//maybe adjust need to pass the child that will make the adjust, but need to see if need to adjust if split but i guess will not
+	if(n == NULL)return;
+	if((*n)->child[0] == NULL)return;
+	printf("init of adjustTree\n");
+	//printf("printing n: \n");
+	//printNode(*n);
+	if((*n)->child[M] != NULL){
+		printf("\nadj->split node: %d adr: %p\n\n",(*n)->id,(*n));
+		splitNode(n);
+		printf("\nend of adj->split node: %d\n\n",(*n)->id);
+		printTree(root);
+	}
+	int i=1;
+	rect aux = (*n)->child[0]->mbr;//this is a copy? 
+	while(i<M && (*n)->child[i] != NULL){
+		if((*n)->child[i]->mbr.x1 < aux.x1){
+			aux.x1 = (*n)->child[i]->mbr.x1;
+		}
+		if((*n)->child[i]->mbr.y1 < aux.y1){
+			aux.y1 = (*n)->child[i]->mbr.y1;
+		}
+		if((*n)->child[i]->mbr.x2 > aux.x2){
+			aux.x2 = (*n)->child[i]->mbr.x2;
+		}
+		if((*n)->child[i]->mbr.y2 > aux.y2){
+			aux.y2 = (*n)->child[i]->mbr.y2;
+		}
+		i++;
+	}
+	(*n)->mbr = aux;//is this a copy??
+	printf("\n\n");
+	printTree(*n);
+	printf("AFTER ADJUST\n");
+	if((*n) != root){
+		adjustTree(&(*n)->parent);
+	}
+
 }
 void pickSeeds(node* n,int split[]){
 	if(n == NULL) return;
+	printf("init of pickSeeds\n");
 	int i, i1 = 0, i2 = 1;
 	if(areaMbr(&n->child[0]->mbr,&n->child[1]->mbr) > areaMbr(&n->child[0]->mbr,&n->child[2]->mbr)){
 		if(areaMbr(&n->child[0]->mbr,&n->child[1]->mbr) > areaMbr(&n->child[1]->mbr,&n->child[2]->mbr)){
@@ -446,8 +539,5 @@ void pickSeeds(node* n,int split[]){
 	}
 	split[0] = i1;
 	split[1] = i2;
-
-}
-node* pickNext(node* n){
-	return n;
+	printf("inside pickSeed seeds: %d,%d\n",split[0],split[1]);
 }
