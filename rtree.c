@@ -32,6 +32,7 @@ int max_size = 1000;//temp size of a bound to the mbr of root and the children
 //CLOCK VARS
 clock_t start, end;
 double cpu_time_used;
+int search_count = 0;
 
 //SEARCH FUNCTIONS
 void Search(node**,rect*);
@@ -78,11 +79,17 @@ int main(int argc, char *argv[]){
 		k = strtol(argv[1], NULL, 10);
 		printf("other argument so k = %ld\n",k);
 	}
-	start = clock();
+	rect r_search;
+	r_search.x1 = 0;
+	r_search.x2 = k+1;
+	r_search.y1 = 0;
+	r_search.y2 = k+1;//this will look for each data inserted
+	
 	root= createNode(NULL);
 	//printTree(root);
 	//printf("\n");
 	int i;
+	start = clock();
 	for(i=0;i<k;i++){
 		Insert(i,i,i+1,i+1);
 	}
@@ -91,7 +98,15 @@ int main(int argc, char *argv[]){
 	end = clock();
 	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 	printf("time elapsed: %f\n",cpu_time_used);
+	start = clock();
+
+	Search(&root,&r_search);
+
+	end = clock();
+	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+	printf("time elapsed: %f\n",cpu_time_used);
 	freeNode(&root);
+	printf("found data : %d\n",search_count);
 	return 0;
 }
 
@@ -254,12 +269,16 @@ void Search(node** n,rect* r){
 	if(*n == NULL) return;
 	if((*n)->child[0] == NULL) return;
 	if((*n) == root && Overleap(&((*n)->mbr),r) == 0)return; //check root first, the next verification will be made before recursion
+	//printf("here\n");
 	if((*n)->child[0]->child[0] == NULL){//this means the children are the data
+		//printf("here2\n");
 		int i = 0;
-		while(i < M && (*n)->child[i] == NULL){
+		while(i < M && (*n)->child[i] != NULL){
+			//printf("here22\n");
 			if(Overleap(&((*n)->child[i]->mbr),r)){//here print the found data TODO: maybe put on a queue
-				printf("found data id : %d ",(*n)->child[i]->id);
-				printRect(&(*n)->child[i]->mbr);
+				//printf("found data id : %d ",(*n)->child[i]->id);
+				//printRect(&(*n)->child[i]->mbr);
+				search_count++;
 
 			}
 			i++;
@@ -267,8 +286,10 @@ void Search(node** n,rect* r){
 
 	}
 	else{//this means the children are other mid nodes
+		//printf("here3\n");
 		int i = 0;
-		while(i < M && (*n)->child[i] == NULL){
+		while(i < M && (*n)->child[i] != NULL){
+			//printf("here3\n");
 			if(Overleap(&((*n)->child[i]->mbr),r)){
 				Search(&(*n)->child[i],r);//here the recursion
 				
@@ -281,7 +302,17 @@ void Search(node** n,rect* r){
 
 //check if the two rects overleap
 int Overleap(rect* r1,rect* r2){
-	return 0;
+	if(r1 == NULL || r2 == NULL) return 0;
+	int overX =0, overY = 0;
+	//printf("H ");
+	if((r1->x1 <= r2->x1 && r1->x2 >= r2->x1) || (r2->x1 <= r1->x1 && r2->x2 >= r1->x1)){
+		overX = 1;
+	}
+	if((r1->y1 <= r2->y1 && r1->y2 >= r2->y1) || (r2->y1 <= r1->y1 && r2->y2 >= r1->y1)){
+		overY = 1;
+	}
+	//printf("%d %d\n",overX,overY);
+	if(overY ==1 && overX == 1) return 1; else return 0;
 }
 //===============================================================================================
 //INSERT FUNCIONS
